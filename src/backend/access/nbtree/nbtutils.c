@@ -32,6 +32,10 @@
 #define LOOK_AHEAD_REQUIRED_RECHECKS 	3
 #define LOOK_AHEAD_DEFAULT_DISTANCE 	5
 
+bool btree_leaf_prefetch = false;
+bool btree_binsrch_linear = false;
+int  btree_binsrch_linear_threshold = 4;
+
 typedef struct BTSortArrayContext
 {
 	FmgrInfo   *sortproc;
