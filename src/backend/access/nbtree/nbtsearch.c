@@ -367,6 +367,44 @@ _bt_binsrch(Relation rel,
 		return low;
 
 	/*
+	* Project 1 (B): Use linear scan on tiny leaf pages instead of binary
+	* search. Only applies to leaf pages, and only when enabled by GUC.
+	*/
+	if (btree_binsrch_linear && P_ISLEAF(opaque))
+	{
+		int nitems = (int) (high - low + 1);
+
+		if (nitems >= 2 && nitems <= btree_binsrch_linear_threshold)
+		{
+			OffsetNumber off;
+			int32 cmpval = key->nextkey ? 0 : 1;
+
+			/*
+			* Linear scan to find the first tuple that is >= scankey (nextkey=false)
+			* or > scankey (nextkey=true).  Matches the semantics of the original
+			* binary search on leaf pages.
+			*/
+			for (off = low; off <= high; off++)
+			{
+				result = _bt_compare(rel, key, page, off);
+
+				if (result < cmpval)
+					break;
+			}
+
+			/*
+			* For backward scans, return the last tuple < scankey (nextkey=false)
+			* or <= scankey (nextkey=true), which is one slot before the "first >=/>"
+			* position we just found.
+			*/
+			if (key->backward)
+				return OffsetNumberPrev(off);
+
+			return off;
+		}
+	}
+	
+	/*
 	 * Binary search to find the first key on the page >= scan key, or first
 	 * key > scankey when nextkey is true.
 	 *
