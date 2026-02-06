@@ -1975,6 +1975,13 @@ _bt_readpage(IndexScanDesc scan, ScanDirection dir, OffsetNumber offnum,
 		so->currPos.itemIndex = MaxTIDsPerBTreePage - 1;
 	}
 
+	// Pre-fetch feature implemented here
+	if (btree_leaf_prefetch && P_ISLEAF(opaque)) 
+	{
+		BlockNumber blk = ScanDirectionIsForward(dir) ? (so->currPos.moreRight ? opaque->btpo_next : P_NONE) : (so->currPos.moreLeft  ? opaque->btpo_prev : P_NONE);
+		if (blk != P_NONE) PrefetchBuffer(scan->indexRelation, MAIN_FORKNUM, blk);
+	}
+
 	return (so->currPos.firstItem <= so->currPos.lastItem);
 }
 
